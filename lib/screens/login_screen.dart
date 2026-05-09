@@ -1,4 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_login/screens/forgot_password_screen.dart';
+import 'package:flutter_login/screens/task_list.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/social_auth_service.dart';
@@ -188,7 +192,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['success']) {
         // Parse the login response
         final loginResponse = ApiService.parseLoginResponse(result['data']);
-        
         if (loginResponse != null) {
           // Store tokens securely
           await StorageService.saveTokens(
@@ -217,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => HomeScreen(user: loginResponse.user),
+                builder: (context) => TaskListScreen(user: loginResponse.user), //HomeScreen(user: loginResponse.user),
               ),
             );
           }
@@ -528,7 +531,13 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         TextButton(
           onPressed: () {
-            // Handle forgot password
+            // Navigate to home page
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ForgotPasswordScreen(),
+              ),
+            );
           },
           child: const Text(
             'Forgot Password?',

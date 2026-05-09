@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class StorageService {
   static const String _authTokenKey = 'auth_token';
@@ -30,7 +31,8 @@ class StorageService {
   // Save user data
   static Future<void> saveUserData(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userDataKey, userData.toString());
+    String jsonString = jsonEncode(userData);
+    await prefs.setString(_userDataKey, jsonString);
   }
 
   // Get user data
@@ -39,7 +41,7 @@ class StorageService {
     final userDataString = prefs.getString(_userDataKey);
     if (userDataString != null) {
       // Simple parsing - in a real app, you'd use proper JSON serialization
-      return {'userData': userDataString};
+      return jsonDecode(userDataString) as Map<String, dynamic>;
     }
     return null;
   }

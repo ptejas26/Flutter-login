@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_login/screens/task_list.dart';
 import '../models/user_model.dart';
 import '../services/storage_service.dart';
+import 'add_task.dart';
 import 'login_screen.dart';
+import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final User user;
@@ -21,31 +24,47 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      await StorageService.clearAll();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logged out successfully'),
-            backgroundColor: Color(0xFF10B981),
-          ),
-        );
-        
-        // Navigate back to login screen
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
+      final token = await StorageService.getAuthToken();
+      final result = await ApiService.logout(
+        email: widget.user.email,
+          token: '$token'
+      );
+
+      if (result['success']) {
+        await StorageService.clearAll();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Logged out successfully'),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+
+          // Navigate back to login screen
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error during logout, please try again'),
+              backgroundColor: Color(0xFFEF4444),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error during logout: ${e.toString()}'),
-            backgroundColor: const Color(0xFFEF4444),
-          ),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error during logout: ${e.toString()}'),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
       }
     } finally {
       if (mounted) {
@@ -76,18 +95,18 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _isLoading ? null : _handleLogout,
             icon: _isLoading
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
-                    ),
-                  )
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+              ),
+            )
                 : const Icon(
-                    Icons.logout,
-                    color: Color(0xFFEF4444),
-                    size: 18,
-                  ),
+              Icons.logout,
+              color: Color(0xFFEF4444),
+              size: 18,
+            ),
             label: const Text(
               'Logout',
               style: TextStyle(
@@ -106,29 +125,60 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              
+
               // Welcome Section
               _buildWelcomeSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // User Info Card
-              _buildUserInfoCard(),
-              
+              // _buildUserInfoCard(),
+
               const SizedBox(height: 24),
-              
-              // Quick Actions
-              _buildQuickActions(),
-              
+
+              // --- INTEGRATED TASK LIST ---
+              const Text(
+                'Your Recent Tasks',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // We call the TaskListScreen widget here.
+              // Note: You might need to wrap it in a ConstrainedBox if it doesn't have a fixed height
+              TaskListScreen(user: widget.user),
+
               const SizedBox(height: 24),
-              
+
               // Footer
-              _buildFooter(),
-              
+              // _buildFooter(),
+
               const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+      // Move the FAB to the Home Screen so it's always accessible
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => AddTaskBottomSheet(
+              onTaskAdded: () {
+                // Assuming you have a global key or a way to trigger
+                // fetchTasks() in your TaskListScreen
+                //_fetchTasks();
+              },
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFF3B82F6),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -155,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         
         // Welcome Text
-        Text(
+        const Text(
           'Welcome,',
           style: const TextStyle(
             fontSize: 24,
@@ -177,9 +227,9 @@ class _HomeScreenState extends State<HomeScreen> {
         
         const SizedBox(height: 8),
         
-        Text(
+        const Text(
           'You are successfully logged in to your account',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             color: Color(0xFF64748B),
           ),
@@ -389,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: const Color(0xFF3B82F6).withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: const Row(
         children: [
           Icon(
             Icons.info_outline,
@@ -397,8 +447,8 @@ class _HomeScreenState extends State<HomeScreen> {
             size: 20,
           ),
           
-          const SizedBox(width: 12),
-          
+          SizedBox(width: 12),
+
           Expanded(
             child: Text(
               'Your account is secure and your data is protected.',
